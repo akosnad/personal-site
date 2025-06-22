@@ -4,13 +4,20 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     crane.url = "github:ipetkov/crane/v0.20.3";
     treefmt-nix.url = "github:numtide/treefmt-nix";
+    hercules-ci-effects = {
+      url = "github:hercules-ci/hercules-ci-effects";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
+    };
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; } {
     systems = [ "x86_64-linux" ];
     imports = [
       inputs.treefmt-nix.flakeModule
+      inputs.hercules-ci-effects.flakeModule
       ./nix/flake-module.nix
+      ./nix/effects.nix
     ];
     perSystem = { config, system, self', pkgs, lib, ... }: {
       treefmt.config = {
@@ -25,13 +32,6 @@
       };
 
       packages.default = self'.packages.personal-site;
-      packages.docker = pkgs.dockerTools.buildImage {
-        name = "personal-site";
-        config = {
-          Cmd = [ (lib.getExe self'.packages.personal-site) ];
-        };
-      };
-
       devShells.default = pkgs.mkShell {
         inputsFrom = [
           config.treefmt.build.devShell
@@ -39,7 +39,6 @@
         ];
         packages = with pkgs; [
           just
-          cargo-watch
           git-lfs
         ];
       };

@@ -3,6 +3,13 @@
 let
   inherit (flake-parts-lib)
     mkPerSystemOption;
+  cargoToml = builtins.fromTOML (builtins.readFile (self + /Cargo.toml));
+  inherit (cargoToml.package) name version;
+
+  listenSocket =
+    lib.match "^([0-9.]+):([0-9]+)$"
+      cargoToml.package.metadata.leptos.site-addr;
+  listenPort = lib.elemAt listenSocket 1;
 in
 {
   options = {
@@ -13,6 +20,12 @@ in
             type = lib.types.functionTo lib.types.attrs;
             default = _: { };
             description = "Override crane args for the site package";
+          };
+
+          site.name = lib.mkOption {
+            type = lib.types.str;
+            default = name;
+            description = "Project name";
           };
 
           site.craneLib = lib.mkOption {
@@ -33,85 +46,100 @@ in
                 # Example of a folder for images, icons, etc
                 (lib.hasInfix "/assets/" path) ||
                 (lib.hasInfix "/css/" path) ||
+                (lib.hasInfix "/locales/" path) ||
                 # Default filter from crane (allow .rs files)
                 (config.site.craneLib.filterCargoSources path type)
               ;
             };
           };
+
+          site.dockerImage = lib.mkOption {
+            type = lib.types.package;
+            description = "Docker image of the package";
+            default = pkgs.dockerTools.buildImage {
+              inherit name;
+              config = {
+                Cmd = [ (lib.getExe self'.packages.${name}) ];
+              };
+            };
+          };
+
+          site.composeProject = lib.mkOption {
+            type = lib.mkOptionType {
+              name = "recursivelyMergedAttrs";
+              description = "Attribute set recursively merged from all definitions";
+
+              merge = loc: defs:
+                lib.foldl' lib.recursiveUpdate { } (map (x: x.value) defs);
+
+              check = lib.isAttrs;
+            };
+            description = "Docker compose project";
+            default = { };
+          };
+
+          site.composeProjectFile = lib.mkOption {
+            type = lib.types.package;
+            description = "Docker compose project output (JSON)";
+            default = pkgs.writeText "docker-compose.json" (builtins.toJSON config.site.composeProject);
+          };
         };
         config =
           let
-            cargoToml = builtins.fromTOML (builtins.readFile (self + /Cargo.toml));
-            inherit (cargoToml.package) name version;
             inherit (config.site) craneLib src;
 
-            # Crane builder for cargo-leptos projects
-            craneBuild = rec {
-              args = {
-                inherit src;
-                pname = name;
-                version = version;
-                buildInputs = with pkgs; [
-                  cargo-leptos
-                  wasm-bindgen-cli_0_2_100
-                ] ++ [
-                  tailwindcss
-                ];
-                nativeBuildInputs = with pkgs; [
-                  pkg-config
-                  openssl
-                  cargo
-                  rustc
-                  lld
+            package = craneLib.mkCargoDerivation {
+              inherit src;
+              pname = name;
+              version = version;
+
+              cargoArtifacts = null;
+              cargoVendorDir = craneLib.vendorMultipleCargoDeps {
+                cargoLockList = [
+                  "${self}/Cargo.lock"
                 ];
               };
-              cargoArtifacts = craneLib.buildDepsOnly args;
-              buildArgs = args // {
-                inherit cargoArtifacts;
-                buildPhaseCargoCommand = "cargo leptos build --release -vvv";
-                cargoTestCommand = "cargo leptos test --release -vvv";
-                cargoExtraArgs = "";
-                doCheck = false;
-                nativeBuildInputs = [
-                  pkgs.makeWrapper
-                ] ++ args.nativeBuildInputs;
-                doNotPostBuildInstallCargoBinaries = true;
-                installPhaseCommand = ''
-                  mkdir -p $out/bin
-                  cp target/release/${name} $out/bin/
-                  cp -r target/site $out/bin/
 
-                  find $out/bin -type f -exec wasm-opt -Oz -g '{}' \; -exec strip -s -v '{}' \; 2>/dev/null
+              nativeBuildInputs = (with pkgs; [
+                cargo-leptos
+                wasm-bindgen-cli_0_2_100
 
-                  patchelf --shrink-rpath \
-                    $out/bin/${name}
-
-                  wrapProgram $out/bin/${name} \
-                    --set LEPTOS_SITE_ROOT $out/bin/site \
-                    --set LEPTOS_ENV PROD \
-                    --set LEPTOS_SITE_ADDR "0.0.0.0:3000"
-                '';
-                # postFixup = ''
-                #   echo "Patching out references to the Rust toolchain..."
-                #   __faketoolchain="$(echo '${rustToolchain}' | sed -E 's/[a-z0-9]{32}/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee/')"
-                #   find $out/bin -type f -exec sed -i "s;${rustToolchain};$__faketoolchain;g" '{}' \;
-                # '';
-                meta.mainProgram = name;
-              };
-              package = craneLib.buildPackage (buildArgs // config.site.overrideCraneArgs buildArgs);
-            };
-
-            rustDevShell = pkgs.mkShell {
-              # shellHook = ''
-              #   # For rust-analyzer 'hover' tooltips to work.
-              #   export RUST_SRC_PATH="${rustToolchain}/lib/rustlib/src/rust/library";
-              # '';
-              inputsFrom = [
-                craneBuild.package
+                pkg-config
+                openssl
+                cargo
+                rustc
+                lld
+                makeWrapper
+              ]) ++ [
+                tailwindcss
+                craneLib.removeReferencesToRustToolchainHook
+                craneLib.removeReferencesToVendoredSourcesHook
               ];
-              packages = [
-                pkgs.libiconv
-              ] ++ craneBuild.args.nativeBuildInputs;
+
+              strictDeps = true;
+              doCheck = false;
+              dontCheck = true;
+              doNotPostBuildInstallCargoBinaries = true;
+              doInstallCargoArtifacts = false;
+
+              buildPhaseCargoCommand = "cargo leptos build --release -vvv";
+              cargoExtraArgs = "";
+              installPhaseCommand = ''
+                mkdir -p $out/bin
+                cp target/release/${name} $out/bin/
+                cp -r target/site $out/bin/
+
+                find $out/bin -type f -exec wasm-opt -Oz -g '{}' \; -exec strip -s -v '{}' \; 2>/dev/null
+
+                patchelf --shrink-rpath \
+                  $out/bin/${name}
+
+                wrapProgram $out/bin/${name} \
+                  --set LEPTOS_SITE_ROOT $out/bin/site \
+                  --set LEPTOS_ENV PROD \
+                  --set LEPTOS_SITE_ADDR "0.0.0.0:3000"
+              '';
+              meta.mainProgram = name;
             };
 
             tailwindcss = pkgs.nodePackages.tailwindcss.overrideAttrs
@@ -126,20 +154,29 @@ in
               });
           in
           {
+            site.composeProject.services.backend = {
+              image = "${name}:${config.site.dockerImage.passthru.imageTag}";
+              ports = [ "${toString listenPort}:${toString listenPort}" ];
+            };
+
             # Rust package
-            packages.${name} = craneBuild.package;
+            packages.${name} = package;
+            packages."docker-${name}" = config.site.dockerImage;
+            packages.composeProject = config.site.composeProjectFile;
 
             # Rust dev environment
             devShells.${name} = pkgs.mkShell {
               inputsFrom = [
-                rustDevShell
+                package
               ];
-              nativeBuildInputs = with pkgs; [
-                tailwindcss
-                cargo-leptos
-                binaryen # Provides wasm-opt
-              ];
+              packages = (with pkgs; [
+                cargo-generate
+                cargo-watch
+                libiconv
+              ]);
             };
+
+            checks.${name} = package;
           };
       });
   };
