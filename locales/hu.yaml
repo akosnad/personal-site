@@ -1,0 +1,3 @@
+greeting: Helló világ!
+test_ordinal_one: Az {{ count }}.
+test_ordinal_other: A {{ count }}.
