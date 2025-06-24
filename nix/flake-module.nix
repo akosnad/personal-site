@@ -172,6 +172,7 @@ in
               packages = (with pkgs; [
                 cargo-generate
                 cargo-watch
+                clippy
                 libiconv
               ]);
             };

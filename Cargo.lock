@@ -1053,6 +1053,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "gloo-timers"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbb143cf96099802033e0d4f4963b19fd2e0b728bcf076cd9cf7f6634f092994"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "gloo-utils"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1188,6 +1200,12 @@ checksum = "f31827a206f56af32e590ba56d5d2d085f558508192593743f16b2306495269f"
 dependencies = [
  "cc",
 ]
+
+[[package]]
+name = "icondata_core"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c97be924215abd5e630d84e95a47c710138a6559b4c55039f4f33aa897fa859"
 
 [[package]]
 name = "icu"
@@ -1718,6 +1736,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0242819d153cba4b4b05a5a8f2a7e9bbf97b6055b2a002b395c96b5ff3c0222"
 dependencies = [
  "cfg-if",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -1814,6 +1835,8 @@ dependencies = [
  "codee",
  "cookie 0.18.1",
  "default-struct-builder",
+ "futures-util",
+ "gloo-timers",
  "http 0.2.12",
  "js-sys",
  "lazy_static",
@@ -1821,6 +1844,7 @@ dependencies = [
  "leptos_actix",
  "paste",
  "thiserror",
+ "unic-langid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -1846,6 +1870,16 @@ dependencies = [
  "server_fn",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "leptos_animation"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63404a7c8d394f540e942768f2cf3afa4603905765c7a4778c774e0e6fb813dd"
+dependencies = [
+ "instant",
+ "leptos",
 ]
 
 [[package]]
@@ -1944,6 +1978,21 @@ dependencies = [
  "serde_yaml",
  "syn 2.0.104",
  "toml",
+]
+
+[[package]]
+name = "leptos_icons"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a9f8ac3d938dd22d605c01e2272cb6b816d3edcae3647610679b8b81c059ccb"
+dependencies = [
+ "bytes",
+ "encoding_rs",
+ "icondata_core",
+ "lazy_static",
+ "leptos",
+ "log",
+ "paste",
 ]
 
 [[package]]
@@ -2357,8 +2406,11 @@ dependencies = [
  "console_error_panic_hook",
  "http 1.3.1",
  "leptos",
+ "leptos-use",
  "leptos_actix",
+ "leptos_animation",
  "leptos_i18n",
+ "leptos_icons",
  "leptos_meta",
  "leptos_router",
  "wasm-bindgen",
@@ -3229,6 +3281,24 @@ name = "typenum"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
+
+[[package]]
+name = "unic-langid"
+version = "0.9.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a28ba52c9b05311f4f6e62d5d9d46f094bd6e84cb8df7b3ef952748d752a7d05"
+dependencies = [
+ "unic-langid-impl",
+]
+
+[[package]]
+name = "unic-langid-impl"
+version = "0.9.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dce1bf08044d4b7a94028c93786f8566047edc11110595914de93362559bc658"
+dependencies = [
+ "tinystr 0.8.1",
+]
 
 [[package]]
 name = "unicase"

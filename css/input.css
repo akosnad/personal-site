@@ -1,3 +1,66 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import url("https://fonts.googleapis.com/css2?family=Recursive:slnt,wght,CRSV,MONO@-15..0,300..800,0..1,0..1&display=swap");
+
+@layer base {
+  html {
+    font-family: "Recursive", monospace;
+    font-variation-settings:
+      "MONO" 0,
+      "CASL" 0,
+      "wght" 800,
+      "slnt "-3.3,
+      "CRSV" 1;
+  }
+}
+
+body {
+  @apply bg-slate-700 text-slate-200;
+}
+
+.halftone {
+  position: relative;
+  filter: brightness(0.8) blur(1px) contrast(999) grayscale(100%);
+  mix-blend-mode: multiply;
+}
+.halftone:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(4.2px at 95% 95%, white, black);
+  background-size: 6px 6px;
+  mix-blend-mode: screen;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  z-index: -1000;
+}
+
+.backdrop div {
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+}
+
+#background {
+  /* background: url("https://www.easygifanimator.net/images/samples/video-to-gif-sample.gif"); */
+  @apply bg-slate-400;
+}
+
+#background img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+#background-color {
+  @apply bg-slate-700;
+  z-index: -1001;
+}
