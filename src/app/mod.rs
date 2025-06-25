@@ -4,7 +4,9 @@ use leptos_animation::*;
 use leptos_meta::*;
 use leptos_router::*;
 
+mod about;
 mod home;
+mod posts;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -18,16 +20,17 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/personal-site.css" />
 
         <I18nContextProvider>
-            // sets the document title
             <Title text="akosnad.dev" />
             <Backdrop />
 
-            // content for this welcome page
+            <NavBar />
+
             <Router>
                 <main class="container mx-auto my-auto px-8 py-8 h-screen flex flex-col items-center justify-center">
                     <Routes>
-                        <Route path="" view=HomePage />
-                        <Route path="/home" view=home::Home />
+                        <Route path="" view=home::Page />
+                        <Route path="/posts" view=posts::Page />
+                        <Route path="/about" view=about::Page />
                         <Route path="/*any" view=NotFound />
                     </Routes>
                 </main>
@@ -36,15 +39,37 @@ pub fn App() -> impl IntoView {
     }
 }
 
-/// Renders the home page of your application.
 #[component]
-fn HomePage() -> impl IntoView {
+fn NavBar() -> impl IntoView {
     let i18n = use_i18n();
 
     view! {
-        <h1 class="text-5xl">"akosnad.dev"</h1>
-        <span class="text-xl italic">{t!(i18n, under_development)}</span>
-        <p class="py-8">{t!(i18n, greeting)}</p>
+        <nav class="fixed top-0 left-0 right-0 container flex px-4 py-4 flex-row gap-6">
+            <Link class="font-bold" href="/">
+                "akosnad.dev"
+            </Link>
+            <Link href="/posts">{t!(i18n, posts)}</Link>
+            <Link href="/about">{t!(i18n, about)}</Link>
+
+            <button class="mx-auto">{}</button>
+        </nav>
+    }
+}
+
+#[component]
+fn Link(
+    #[prop(into)] href: String,
+    #[prop(optional, into)] class: String,
+    children: Children,
+) -> impl IntoView {
+    let class = format!(
+        "{} hover:-translate-y-0.5 underline hover:decoration-4 transition-all",
+        class
+    );
+    view! {
+        <a class=class href=href>
+            {children()}
+        </a>
     }
 }
 
@@ -86,8 +111,5 @@ fn NotFound() -> impl IntoView {
                 "Not Found"
             </span>
         </h1>
-        <a class="py-8" href="/">
-            go back home
-        </a>
     }
 }
