@@ -55,7 +55,7 @@ fn Backdrop() -> impl IntoView {
             <div class="halftone">
                 <div id="background">
                     <div id="bg-breathe" />
-                    <img src="/assets/bg.jpg" onload="this.style.opacity=1" class="easeload"/>
+                    <img src="/assets/bg.jpg" onload="this.style.opacity=1" class="easeload" />
                 </div>
             </div>
             <div id="background-color" />
@@ -81,7 +81,13 @@ fn NotFound() -> impl IntoView {
     }
 
     view! {
-        <h1 class="text-5xl">"Not Found"</h1>
-        <a class="py-8" href="/">go back home</a>
+        <h1 class="text-5xl">
+            <span class="glitch" data-text="Not Found">
+                "Not Found"
+            </span>
+        </h1>
+        <a class="py-8" href="/">
+            go back home
+        </a>
     }
 }
