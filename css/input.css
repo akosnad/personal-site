@@ -16,7 +16,11 @@
 }
 
 body {
-  @apply bg-slate-700 text-slate-200;
+  @apply bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200;
+  transition:
+    color 1s,
+    background 1s,
+    filter 1s;
 }
 
 .halftone {
@@ -49,18 +53,67 @@ body {
   position: absolute;
 }
 
-#background {
-  /* background: url("https://www.easygifanimator.net/images/samples/video-to-gif-sample.gif"); */
-  @apply bg-slate-400;
+@keyframes pan-up {
+  100% {
+    background-position: 50% 0%;
+  }
+  50% {
+    background-position: 50% 100%;
+  }
+  0% {
+    background-position: 50% 200%;
+  }
+}
+  
+#bg-breathe {
+  background: url("/assets/bg.svg");
+  filter: contrast(.1) brightness(1.5);
+  object-fit: cover;
+  animation: pan-up 60s linear infinite;
+  overflow: hidden;
 }
 
 #background img {
   height: 100%;
   width: 100%;
   object-fit: cover;
+  filter: brightness(1.2) contrast(.4);
+  mix-blend-mode: multiply;
 }
 
 #background-color {
-  @apply bg-slate-700;
-  z-index: -1001;
+  @apply bg-slate-200 dark:bg-slate-700;
+  z-index: -1100;
+}
+
+.easeload {
+  opacity: 0;
+  transition: all 2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #background img {
+    display: none;
+  }
+  #bg-breathe {
+    display: none;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .backdrop {
+    filter: invert(1);
+  }
+  .halftone {
+    filter: brightness(0.65) blur(1px) contrast(999) grayscale(100%) invert(1);
+  }
+  #background-color {
+    filter: invert(1);
+  }
+  #background {
+    filter: invert(1);
+  }
+  #background img {
+    filter: brightness(1.0) contrast(.4) invert(1);
+  }
 }
