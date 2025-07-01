@@ -56,11 +56,15 @@ in
           site.dockerImage = lib.mkOption {
             type = lib.types.package;
             description = "Docker image of the package";
-            default = pkgs.dockerTools.buildImage {
+            default = (pkgs.dockerTools.buildImage {
               inherit name;
               config = {
                 Cmd = [ (lib.getExe self'.packages.${name}) ];
               };
+            }).overrideAttrs {
+              __structuredAttrs = true;
+              # fail build if output is larger than 128MiB
+              outputChecks.out.maxSize = 128 * 1024 * 1024;
             };
           };
 
