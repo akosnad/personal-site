@@ -1,8 +1,12 @@
 use crate::i18n::*;
-use leptos::*;
+use leptos::prelude::*;
 use leptos_icons::Icon;
-use leptos_meta::*;
-use leptos_router::*;
+use leptos_meta::{Stylesheet, Title, provide_meta_context};
+use leptos_router::{
+    StaticSegment, WildcardSegment,
+    components::{Route, Router, Routes},
+    hooks::use_location,
+};
 use leptos_use::{
     BreakpointsTailwind, breakpoints_tailwind, use_breakpoints, use_cookie,
     use_prefers_reduced_motion,
@@ -38,15 +42,15 @@ impl Default for BackdropProvider {
     }
 }
 impl BackdropProvider {
-    fn animation_enabled_fallback_value(&self) -> bool {
-        self.is_screen_lg_or_larger.get() && !self.is_reduced_motion_preferred.get()
-    }
-
     fn animation_enabled(&self) -> bool {
+        if self.is_reduced_motion_preferred.get() {
+            return false;
+        }
+
         if let Some(forced_value) = self.animation_user_override.get() {
             forced_value
         } else {
-            self.animation_enabled_fallback_value()
+            self.is_screen_lg_or_larger.get()
         }
     }
 
@@ -54,7 +58,7 @@ impl BackdropProvider {
         self.animation_user_override_set.update(|w| {
             *w = match *w {
                 Some(val) => Some(!val),
-                None => Some(!self.animation_enabled_fallback_value()),
+                None => Some(true),
             }
         });
     }
@@ -75,15 +79,15 @@ pub fn App() -> impl IntoView {
             <Title text="akosnad.dev" />
             <Backdrop />
 
-            <NavBar />
-
             <Router>
+                <NavBar />
+
                 <main class="container mx-auto my-auto px-8 py-8 h-screen flex flex-col items-center justify-center">
-                    <Routes>
-                        <Route path="" view=home::Page />
-                        <Route path="/posts" view=posts::Page />
-                        <Route path="/about" view=about::Page />
-                        <Route path="/*any" view=NotFound />
+                    <Routes fallback=move || "Not Found">
+                        <Route path=StaticSegment("") view=home::Page />
+                        <Route path=StaticSegment("/posts") view=posts::Page />
+                        <Route path=StaticSegment("/about") view=about::Page />
+                        <Route path=WildcardSegment("any") view=NotFound />
                     </Routes>
                 </main>
             </Router>
@@ -99,9 +103,9 @@ fn NavBar() -> impl IntoView {
     let backdrop2 = backdrop.clone();
     let anim_toggle_icon = move || {
         if backdrop2.animation_enabled() {
-            view! { <Icon icon=icondata::MdiAnimationPlayOutline /> }
+            view! { <Icon icon=icondata::MdiFilmstrip /> }
         } else {
-            view! { <Icon icon=icondata::MdiAnimationOutline /> }
+            view! { <Icon icon=icondata::MdiFilmstripOff /> }
         }
     };
 
@@ -118,10 +122,9 @@ fn NavBar() -> impl IntoView {
             <Link href="/about">{t!(i18n, about)}</Link>
 
             <button
-                class="ml-auto"
+                class="ml-auto motion-reduce:hidden"
                 on:click=on_anim_toggle
                 title="Toggle visual animations"
-                aria-hidden="true"
             >
                 {anim_toggle_icon}
             </button>
@@ -135,10 +138,22 @@ fn Link(
     #[prop(optional, into)] class: String,
     children: Children,
 ) -> impl IntoView {
-    let class = format!(
-        "{} hover:-translate-y-0.5 underline hover:decoration-4 transition-all",
-        class
-    );
+    let location = use_location();
+
+    let pointed_path = href.clone();
+    let class = move || {
+        if location.pathname.get() == pointed_path {
+            format!(
+                "{} hover:-translate-y-0.5 underline hover:decoration-8 decoration-4 transition-all",
+                class
+            )
+        } else {
+            format!(
+                "{} hover:-translate-y-0.5 underline hover:decoration-4 transition-all",
+                class
+            )
+        }
+    };
     view! {
         <a class=class href=href>
             {children()}
@@ -150,22 +165,19 @@ fn Link(
 fn Backdrop() -> impl IntoView {
     let ctx: BackdropProvider = use_context().expect("BackdropProvider should be provided");
 
-    let animation = move || {
-        if ctx.animation_enabled() {
-            view! {
+    view! {
+        <div class="backdrop overflow-hidden">
+            <Show when=move || { ctx.animation_enabled() }>
                 <div class="halftone">
                     <div id="background">
                         <div id="bg-breathe" />
-                        <img src="/assets/bg.jpg" onload="this.style.opacity=1" class="easeload" />
+                        <img src="/assets/bg.jpg" class="easeload" />
                     </div>
                 </div>
-            }
-        } else {
-            view! { <div /> }
-        }
-    };
-
-    view! { <div class="backdrop overflow-hidden">{animation} <div id="background-color" /></div> }
+            </Show>
+            <div id="background-color" />
+        </div>
+    }
 }
 
 /// 404 - Not Found

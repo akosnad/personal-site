@@ -1,14 +1,11 @@
 pub mod app;
 
-leptos_i18n::load_locales!();
+include!(concat!(env!("OUT_DIR"), "/i18n/mod.rs"));
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn hydrate() {
     use app::*;
-    use leptos::*;
-
     console_error_panic_hook::set_once();
-
-    mount_to_body(App);
+    leptos::mount::hydrate_body(App);
 }
