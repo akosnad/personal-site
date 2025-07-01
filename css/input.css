@@ -87,11 +87,11 @@ body {
 }
 
 .easeload {
-  /* opacity: 0; */
   transition: all 2s ease;
   animation-name: easeload;
   animation-duration: 2s;
   animation-iteration-count: 1;
+  animation-timing-function: ease-in-out;
 }
 
 @keyframes easeload {

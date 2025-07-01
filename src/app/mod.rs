@@ -3,9 +3,9 @@ use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_meta::{Stylesheet, Title, provide_meta_context};
 use leptos_router::{
-    StaticSegment, WildcardSegment,
     components::{Route, Router, Routes},
     hooks::use_location,
+    path,
 };
 use leptos_use::{
     BreakpointsTailwind, breakpoints_tailwind, use_breakpoints, use_cookie,
@@ -84,10 +84,15 @@ pub fn App() -> impl IntoView {
 
                 <main class="container mx-auto my-auto px-8 py-8 h-screen flex flex-col items-center justify-center">
                     <Routes fallback=move || "Not Found">
-                        <Route path=StaticSegment("") view=home::Page />
-                        <Route path=StaticSegment("/posts") view=posts::Page />
-                        <Route path=StaticSegment("/about") view=about::Page />
-                        <Route path=WildcardSegment("any") view=NotFound />
+                        <Route path=path!("") view=home::Page />
+                        <Route path=path!("/posts") view=posts::PostsList />
+                        <Route
+                            path=path!("/posts/:id")
+                            view=posts::PostContent
+                            ssr=leptos_router::SsrMode::Async
+                        />
+                        <Route path=path!("/about") view=about::Page />
+                        <Route path=path!("any") view=NotFound />
                     </Routes>
                 </main>
             </Router>

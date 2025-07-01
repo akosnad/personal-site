@@ -2840,6 +2840,7 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
+ "serde",
  "wasm-bindgen",
 ]
 

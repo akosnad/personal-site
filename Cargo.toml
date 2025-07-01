@@ -24,6 +24,7 @@ leptos_icons = "0.6"
 leptos-use = { version = "0.16", features = ["storage"] }
 icondata = "0.6.0"
 codee = "0.3"
+serde = "1"
 
 [features]
 csr = ["leptos/csr", "leptos_i18n/csr", "leptos_i18n_build/csr"]
