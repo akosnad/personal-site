@@ -1,13 +1,10 @@
-use crate::i18n::*;
 use leptos::prelude::*;
 
 #[component]
 pub fn Page() -> impl IntoView {
-    let i18n = use_i18n();
-
     view! {
         <h1 class="text-5xl">"akosnad.dev"</h1>
-        <span class="text-xl italic">{t!(i18n, under_development)}</span>
-        <p class="py-8">{t!(i18n, greeting)}</p>
+        <span class="text-xl italic">"Under development"</span>
+        <p class="py-8">"Welcome to my portfolio site / blog. Stay tuned."</p>
     }
 }

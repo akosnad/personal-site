@@ -47,6 +47,7 @@ in
                 (lib.hasInfix "/assets/" path) ||
                 (lib.hasInfix "/css/" path) ||
                 (lib.hasInfix "/locales/" path) ||
+                (lib.hasInfix "/posts/" path) ||
                 # Default filter from crane (allow .rs files)
                 (config.site.craneLib.filterCargoSources path type)
               ;

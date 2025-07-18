@@ -1,4 +1,3 @@
-use crate::i18n::*;
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_meta::{Stylesheet, Title, provide_meta_context};
@@ -75,34 +74,31 @@ pub fn App() -> impl IntoView {
         // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet id="leptos" href="/pkg/personal-site.css" />
 
-        <I18nContextProvider>
-            <Title text="akosnad.dev" />
-            <Backdrop />
+        <Title text="akosnad.dev" />
+        <Backdrop />
 
-            <Router>
-                <NavBar />
+        <Router>
+            <NavBar />
 
-                <main class="container mx-auto my-auto px-8 py-8 h-screen flex flex-col items-center justify-center">
-                    <Routes fallback=move || "Not Found">
-                        <Route path=path!("") view=home::Page />
-                        <Route path=path!("/posts") view=posts::PostsList />
-                        <Route
-                            path=path!("/posts/:id")
-                            view=posts::PostContent
-                            ssr=leptos_router::SsrMode::Async
-                        />
-                        <Route path=path!("/about") view=about::Page />
-                        <Route path=path!("any") view=NotFound />
-                    </Routes>
-                </main>
-            </Router>
-        </I18nContextProvider>
+            <main class="container mx-auto my-auto px-8 py-8 min-h-screen max-w-screen flex flex-col items-center justify-center">
+                <Routes fallback=move || "Not Found">
+                    <Route path=path!("") view=home::Page />
+                    <Route path=path!("/posts") view=posts::PostsList />
+                    <Route
+                        path=path!("/posts/:id")
+                        view=posts::PostContent
+                        ssr=leptos_router::SsrMode::Async
+                    />
+                    <Route path=path!("/about") view=about::Page />
+                    <Route path=path!("any") view=NotFound />
+                </Routes>
+            </main>
+        </Router>
     }
 }
 
 #[component]
 fn NavBar() -> impl IntoView {
-    let i18n = use_i18n();
     let backdrop = use_context::<BackdropProvider>().expect("BackdropProvider should be provided");
 
     let backdrop2 = backdrop.clone();
@@ -120,11 +116,11 @@ fn NavBar() -> impl IntoView {
 
     view! {
         <nav class="fixed left-0 top-0 right-0 container mx-auto flex px-4 py-4 flex-row gap-6">
-            <Link class="font-bold" href="/">
+            <Link class="font-black" href="/">
                 "akosnad.dev"
             </Link>
-            <Link href="/posts">{t!(i18n, posts)}</Link>
-            <Link href="/about">{t!(i18n, about)}</Link>
+            <Link href="/posts">"posts"</Link>
+            <Link href="/about">"about"</Link>
 
             <button
                 class="ml-auto motion-reduce:hidden"
@@ -145,9 +141,17 @@ fn Link(
 ) -> impl IntoView {
     let location = use_location();
 
+    let is_pointed_path_current_path = move |pointed_path: &str| {
+        let current_path = location.pathname.get();
+        if pointed_path == "/" && current_path != "/" {
+            return false;
+        }
+        current_path.starts_with(pointed_path)
+    };
+
     let pointed_path = href.clone();
     let class = move || {
-        if location.pathname.get() == pointed_path {
+        if is_pointed_path_current_path(&pointed_path) {
             format!(
                 "{} hover:-translate-y-0.5 underline hover:decoration-8 decoration-4 transition-all",
                 class
