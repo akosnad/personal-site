@@ -6,6 +6,7 @@ pub enum PostLoadError {
     InvalidId(PostIdError),
     MarkdownParseFailed(String),
     SyntaxHighlightFailed(String),
+    RenderMathFailed(String),
     NotFound,
     Unknown,
 }
@@ -16,6 +17,7 @@ impl std::fmt::Display for PostLoadError {
             Self::NotFound => write!(f, "Post doesn't exist (yet!)"),
             Self::MarkdownParseFailed(s) => write!(f, "Parsing markdown failed: {s}"),
             Self::SyntaxHighlightFailed(s) => write!(f, "Code syntax highlighting failed: {s}"),
+            Self::RenderMathFailed(s) => write!(f, "Rendering math failed: {s}"),
             Self::Unknown => write!(f, "Unknown error"),
         }
     }
@@ -33,6 +35,9 @@ impl std::str::FromStr for PostLoadError {
         }
         if let Some(s) = s.strip_prefix("Code syntax highlighting failed: ") {
             return Ok(Self::SyntaxHighlightFailed(String::from(s)));
+        }
+        if let Some(s) = s.strip_prefix("Rendering math failed: ") {
+            return Ok(Self::RenderMathFailed(String::from(s)));
         }
         match s {
             "Post doesn't exist (yet!)" => Ok(Self::NotFound),
@@ -124,7 +129,8 @@ pub async fn load_post_content(post_id: PostId) -> Result<String, ServerFnError<
                     eprintln!("to_html_with_options() failed: {e:?}");
                     PostLoadError::MarkdownParseFailed(e.reason)
                 })?;
-            let postprocessed_html = postprocess(&html)?;
+            // let postprocessed_html = postprocess(&html)?;
+            let postprocessed_html = html;
 
             post_cache.ids.insert(post_id.number, post_id.clone());
             post_cache.entries.insert(
@@ -149,7 +155,7 @@ pub async fn load_post_content(post_id: PostId) -> Result<String, ServerFnError<
 fn preprocess(
     mut content: markdown::mdast::Node,
 ) -> Result<Option<markdown::mdast::Node>, PostLoadError> {
-    use markdown::mdast::{Code, Node};
+    use markdown::mdast::{Code, Delete, Html, InlineMath, Math, Node, Text};
 
     if let Some(children) = content.children_mut() {
         // preprocess children
@@ -165,18 +171,26 @@ fn preprocess(
             value,
             position,
             lang,
-            meta,
+            ..
         }) if lang.is_some() => {
             // syntax highlight code block with language specified
 
             let lang = lang.unwrap();
-            Some(Node::Code(Code {
+            Some(Node::Html(Html {
                 value: syntax_highlight(&value, &lang)?,
                 position,
-                lang: Some(lang),
-                meta,
             }))
         }
+        Node::Math(Math {
+            value, position, ..
+        }) => Some(Node::Html(Html {
+            value: render_math(&value, false)?,
+            position,
+        })),
+        Node::InlineMath(InlineMath { value, position }) => Some(Node::Html(Html {
+            value: render_math(&value, true)?,
+            position,
+        })),
         // remove frontmatter
         // TODO: parse and return values as post metadata
         Node::Yaml(_) | Node::Toml(_) => None,
@@ -184,6 +198,21 @@ fn preprocess(
         // TODO: also render math blocks
         c => Some(c),
     })
+}
+
+#[cfg(feature = "ssr")]
+fn render_math(src: &str, inline: bool) -> Result<String, PostLoadError> {
+    let opts = katex::Opts::builder()
+        .display_mode(!inline)
+        .build()
+        .map_err(|e| PostLoadError::RenderMathFailed(format!("{e:?}")))?;
+    let html = katex::render_with_opts(src, &opts)
+        .map_err(|e| PostLoadError::RenderMathFailed(format!("{e:?}")))?;
+    if inline {
+        Ok(html)
+    } else {
+        Ok(format!("<pre>{html}</pre>"))
+    }
 }
 
 #[cfg(feature = "ssr")]
@@ -248,7 +277,7 @@ fn syntax_highlight(src: &str, lang: &str) -> Result<String, PostLoadError> {
         }
         _ => {
             return Err(PostLoadError::SyntaxHighlightFailed(
-                "language highlight not implemented".to_string(),
+                "language {lang} highlight not implemented :(".to_string(),
             ));
         }
     };
@@ -267,49 +296,16 @@ fn syntax_highlight(src: &str, lang: &str) -> Result<String, PostLoadError> {
             }
             HighlightEvent::HighlightStart(s) => {
                 highlighted_src.push_str(&format!(
-                    "!~#<span class=\"highlight {}\">#~!",
+                    "<span class=\"highlight {}\">",
                     highlight_names[s.0]
                 ));
             }
             HighlightEvent::HighlightEnd => {
-                highlighted_src.push_str("!~#</span>#~!");
+                highlighted_src.push_str("</span>");
             }
         }
     }
-    Ok(highlighted_src)
-}
-
-#[cfg(feature = "ssr")]
-fn postprocess(html: &str) -> Result<String, PostLoadError> {
-    use std::collections::VecDeque;
-
-    let re = regex::Regex::new(r"\!\~\#.*?\#\~\!").map_err(|e| {
-        PostLoadError::SyntaxHighlightFailed(format!("failed to parse postprocessing regex: {e:?}"))
-    })?;
-    let mut replacement_strings: VecDeque<((usize, usize), String)> = re
-        .find_iter(html)
-        .into_iter()
-        .map(|m| {
-            let inner = &html[m.start()..m.end()];
-            let decoded = html_escape::decode_html_entities(inner);
-            ((m.start(), m.end()), String::from(decoded))
-        })
-        .collect();
-
-    if replacement_strings.is_empty() {
-        return Ok(String::from(html));
-    }
-
-    let mut postprocessed = String::new();
-    let mut last_end = 0;
-    while let Some(((start, end), replacement)) = replacement_strings.pop_front() {
-        postprocessed.push_str(&html[last_end..start]);
-        postprocessed.push_str(&replacement[3..replacement.len() - 3]);
-        last_end = end;
-    }
-    if last_end < html.len() {
-        postprocessed.push_str(&html[last_end..html.len()]);
-    }
-
-    Ok(postprocessed)
+    Ok(format!(
+        "<pre><code class=\"language-{lang}\">{highlighted_src}</code></pre>"
+    ))
 }

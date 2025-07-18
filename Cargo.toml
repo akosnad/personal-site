@@ -30,6 +30,7 @@ tree-sitter-highlight = { version = "0.25.8", optional = true }
 tree-sitter-rust = { version = "0.24.0", optional = true }
 html-escape = { version = "0.2.13", optional = true }
 tree-sitter-html = { version = "0.23.2", optional = true }
+katex = { version = "0.4.6", optional = true }
 
 [features]
 csr = ["leptos/csr"]
@@ -49,12 +50,14 @@ ssr = [
   "dep:tree-sitter-highlight",
   "dep:tree-sitter-rust",
   "dep:tree-sitter-html",
+  "dep:katex",
 ]
 markdown = ["dep:markdown"]
 tree-sitter-highlight = ["dep:tree-sitter-highlight"]
 tree-sitter-rust = ["dep:tree-sitter-rust"]
 html-escape = ["dep:html-escape"]
 tree-sitter-html = ["dep:tree-sitter-html"]
+katex = ["dep:katex"]
 
 [profile.release]
 codegen-units = 1

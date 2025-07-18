@@ -336,7 +336,7 @@ nav {
   @apply mt-6 mb-auto;
 }
 
-#post-body * {
+#post-body > * {
   @apply my-4;
 }
 
@@ -362,11 +362,11 @@ nav {
   @apply text-justify;
 }
 
-#post-body pre {
-  @apply px-4 py-4 bg-slate-300 dark:bg-slate-800 rounded;
+pre {
+  @apply px-4 py-4 bg-slate-200 dark:bg-slate-900 rounded;
 }
 
-#post-body code {
+code {
   font-variation-settings:
     "MONO" 1,
     "CASL" 0,
@@ -398,4 +398,24 @@ span.highlight.constant {
 }
 span.highlight.tag {
   @apply text-indigo-600 dark:text-indigo-400;
+}
+
+.katex > .katex-html {
+  display: none;
+}
+
+blockquote {
+  @apply px-4 py-4 bg-slate-300 dark:bg-slate-800 rounded text-slate-600 dark:text-slate-400;
+  text-align: justify;
+}
+blockquote p {
+  display: inline;
+}
+blockquote:before {
+  content: "";
+  @apply mr-4 border-2 border-slate-500 dark:border-slate-500;
+}
+
+#post-body img {
+  @apply rounded mb-2;
 }
