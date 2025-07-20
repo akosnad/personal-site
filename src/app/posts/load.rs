@@ -1,13 +1,18 @@
 use super::id::{PostId, PostIdError};
 use leptos::prelude::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum PostLoadError {
     InvalidId(PostIdError),
     MarkdownParseFailed(String),
     SyntaxHighlightFailed(String),
     RenderMathFailed(String),
     NotFound,
+    NoMetadata,
+    MetadataParseFailed(String),
+    FootnoteDefNotReferenced(String),
+    MultipleFootnoteDefinitions(String),
     Unknown,
 }
 impl std::fmt::Display for PostLoadError {
@@ -18,6 +23,14 @@ impl std::fmt::Display for PostLoadError {
             Self::MarkdownParseFailed(s) => write!(f, "Parsing markdown failed: {s}"),
             Self::SyntaxHighlightFailed(s) => write!(f, "Code syntax highlighting failed: {s}"),
             Self::RenderMathFailed(s) => write!(f, "Rendering math failed: {s}"),
+            Self::NoMetadata => write!(f, "Post file has no metadata"),
+            Self::MetadataParseFailed(s) => write!(f, "Post metadata parsing failed: {s}"),
+            Self::FootnoteDefNotReferenced(s) => {
+                write!(f, "No references to footnote definition: {s}")
+            }
+            Self::MultipleFootnoteDefinitions(s) => {
+                write!(f, "Multiple footnote definitions present for {s}")
+            }
             Self::Unknown => write!(f, "Unknown error"),
         }
     }
@@ -39,8 +52,18 @@ impl std::str::FromStr for PostLoadError {
         if let Some(s) = s.strip_prefix("Rendering math failed: ") {
             return Ok(Self::RenderMathFailed(String::from(s)));
         }
+        if let Some(s) = s.strip_prefix("Post metadata parsing failed: ") {
+            return Ok(Self::MetadataParseFailed(String::from(s)));
+        }
+        if let Some(s) = s.strip_prefix("No references to footnote definition: ") {
+            return Ok(Self::FootnoteDefNotReferenced(String::from(s)));
+        }
+        if let Some(s) = s.strip_prefix("Multiple footnote definitions present for ") {
+            return Ok(Self::MultipleFootnoteDefinitions(String::from(s)));
+        }
         match s {
             "Post doesn't exist (yet!)" => Ok(Self::NotFound),
+            "Post file has no metadata" => Ok(Self::NoMetadata),
             _ => Ok(Self::Unknown),
         }
     }
@@ -60,7 +83,7 @@ struct CachedPost {
 }
 
 #[server]
-pub async fn load_post_content(post_id: PostId) -> Result<String, ServerFnError<PostLoadError>> {
+pub async fn load_post_content(post_id: PostId) -> Result<Post, ServerFnError<PostLoadError>> {
     use std::io::ErrorKind;
     use std::sync::{Arc, Mutex, OnceLock};
     use std::time::{Duration, Instant};
@@ -72,7 +95,7 @@ pub async fn load_post_content(post_id: PostId) -> Result<String, ServerFnError<
                 math_flow: true,
                 math_text: true,
                 frontmatter: true,
-                ..Default::default()
+                ..markdown::Constructs::gfm()
             },
             ..Default::default()
         },
@@ -113,12 +136,21 @@ pub async fn load_post_content(post_id: PostId) -> Result<String, ServerFnError<
         Ok(post_raw) => {
             // safe to unwrap because markdown doesn't have syntax errors
             let mdast = markdown::to_mdast(&post_raw, &md_options.parse).unwrap();
-            let Some(preprocessed_mdast) = preprocess(mdast)? else {
+            let mut metadata = None;
+            let mut footnotes = std::collections::HashMap::new();
+            let Some(preprocessed_mdast) =
+                preprocess(mdast, &mut metadata, &mut footnotes, &md_options)
+                    .map_err(|e| ServerFnError::from(e))?
+            else {
                 return Err(PostLoadError::MarkdownParseFailed(
                     "preprocess returned no root element".to_string(),
                 )
                 .into());
             };
+            let Some(metadata) = metadata else {
+                return Err(PostLoadError::NoMetadata.into());
+            };
+
             let preprocessed_md = mdast_util_to_markdown::to_markdown(&preprocessed_mdast)
                 .map_err(|e| {
                     eprintln!("to_markdown() failed: {e:?}");
@@ -129,18 +161,16 @@ pub async fn load_post_content(post_id: PostId) -> Result<String, ServerFnError<
                     eprintln!("to_html_with_options() failed: {e:?}");
                     PostLoadError::MarkdownParseFailed(e.reason)
                 })?;
-            // let postprocessed_html = postprocess(&html)?;
-            let postprocessed_html = html;
 
             post_cache.ids.insert(post_id.number, post_id.clone());
             post_cache.entries.insert(
                 post_id.number,
                 CachedPost {
-                    content: postprocessed_html.clone(),
+                    content: html.clone(),
                     last_update: Instant::now(),
                 },
             );
-            Ok(postprocessed_html)
+            Ok(Post { html, metadata })
         }
         Err(e) => match e.kind() {
             ErrorKind::NotFound => Err(PostLoadError::NotFound.into()),
@@ -152,15 +182,42 @@ pub async fn load_post_content(post_id: PostId) -> Result<String, ServerFnError<
 }
 
 #[cfg(feature = "ssr")]
+#[derive(Debug, Clone)]
+struct PreprocessedPost {
+    root: markdown::mdast::Node,
+    metadata: Option<PostMetadata>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PostMetadata {
+    pub title: String,
+    pub date: chrono::NaiveDate,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Post {
+    pub html: String,
+    pub metadata: PostMetadata,
+}
+
+#[cfg(feature = "ssr")]
 fn preprocess(
     mut content: markdown::mdast::Node,
+    metadata: &mut Option<PostMetadata>,
+    footnotes: &mut std::collections::HashMap<String, (usize, bool)>,
+    md_options: &markdown::Options,
 ) -> Result<Option<markdown::mdast::Node>, PostLoadError> {
-    use markdown::mdast::{Code, Delete, Html, InlineMath, Math, Node, Text};
+    use markdown::mdast::{
+        Code, Delete, FootnoteDefinition, FootnoteReference, Html, InlineMath, Math, Node, Text,
+        Toml, Yaml,
+    };
 
     if let Some(children) = content.children_mut() {
         // preprocess children
-        let new_children: Result<Vec<Option<Node>>, _> =
-            children.iter().map(|c| preprocess(c.clone())).collect();
+        let new_children: Result<Vec<Option<Node>>, _> = children
+            .iter()
+            .map(|c| preprocess(c.clone(), metadata, footnotes, md_options))
+            .collect();
         // remove `None` children
         let new_children: Vec<Node> = new_children?.iter().cloned().flatten().collect();
         let _ = std::mem::replace(children, new_children);
@@ -173,8 +230,6 @@ fn preprocess(
             lang,
             ..
         }) if lang.is_some() => {
-            // syntax highlight code block with language specified
-
             let lang = lang.unwrap();
             Some(Node::Html(Html {
                 value: syntax_highlight(&value, &lang)?,
@@ -191,13 +246,80 @@ fn preprocess(
             value: render_math(&value, true)?,
             position,
         })),
-        // remove frontmatter
-        // TODO: parse and return values as post metadata
-        Node::Yaml(_) | Node::Toml(_) => None,
-
-        // TODO: also render math blocks
+        Node::Yaml(Yaml { value, .. }) => {
+            let new_metadata: PostMetadata = serde_yaml::from_str(&value)
+                .map_err(|e| PostLoadError::MetadataParseFailed(format!("{e:?}")))?;
+            let _ = metadata.insert(new_metadata);
+            None
+        }
+        Node::Toml(Toml { value, .. }) => {
+            let new_metadata: PostMetadata = toml::from_str(&value)
+                .map_err(|e| PostLoadError::MetadataParseFailed(format!("{e:?}")))?;
+            let _ = metadata.insert(new_metadata);
+            None
+        }
+        Node::FootnoteReference(FootnoteReference {
+            position,
+            identifier,
+            label,
+        }) => {
+            let num = if let Some((prev_num, _)) = footnotes.get(&identifier) {
+                *prev_num
+            } else {
+                let new_num = footnotes.len() + 1;
+                footnotes.insert(identifier, (new_num, false));
+                new_num
+            };
+            Some(Node::Html(Html {
+                value: format!("<a class=\"footnote-ref\" href=\"#footnote-{num}\">{num}</a>"),
+                position,
+            }))
+        }
+        Node::FootnoteDefinition(def) => match footnotes.get(&def.identifier) {
+            Some((num, false)) => {
+                let num = num.clone();
+                footnotes.insert(def.identifier.clone(), (num, true));
+                let html = render_footnote_definition(&def, md_options)?;
+                Some(Node::Html(Html {
+                    value: format!(
+                        "<div class=\"footnote-def\" id=\"footnote-{num}\"><p>[{num}]: </p>{html}</div>"
+                    ),
+                    position: def.position,
+                }))
+            }
+            Some((_, true)) => {
+                return Err(PostLoadError::MultipleFootnoteDefinitions(format!(
+                    "{}",
+                    def.identifier
+                )));
+            }
+            None => {
+                return Err(PostLoadError::FootnoteDefNotReferenced(def.identifier));
+            }
+        },
         c => Some(c),
     })
+}
+
+#[cfg(feature = "ssr")]
+fn render_footnote_definition(
+    node: &markdown::mdast::FootnoteDefinition,
+    md_options: &markdown::Options,
+) -> Result<String, PostLoadError> {
+    let md =
+        mdast_util_to_markdown::to_markdown(&markdown::mdast::Node::Root(markdown::mdast::Root {
+            children: node.children.clone(),
+            position: None,
+        }))
+        .map_err(|e| {
+            eprintln!("render_footnote_definition to_markdown() failed: {e:?}");
+            PostLoadError::MarkdownParseFailed(e.reason)
+        })?;
+    let html = markdown::to_html_with_options(&md, md_options).map_err(|e| {
+        eprintln!("render_footnote_definition to_html_with_options() failed: {e:?}");
+        PostLoadError::MarkdownParseFailed(e.reason)
+    })?;
+    Ok(html)
 }
 
 #[cfg(feature = "ssr")]
@@ -276,9 +398,9 @@ fn syntax_highlight(src: &str, lang: &str) -> Result<String, PostLoadError> {
             })?
         }
         _ => {
-            return Err(PostLoadError::SyntaxHighlightFailed(
-                "language {lang} highlight not implemented :(".to_string(),
-            ));
+            return Err(PostLoadError::SyntaxHighlightFailed(format!(
+                "{lang} not implemented :("
+            )));
         }
     };
 

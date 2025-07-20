@@ -21,7 +21,7 @@ leptos_icons = "0.6"
 leptos-use = { version = "0.16", features = ["storage"] }
 icondata = "0.6.0"
 codee = "0.3"
-serde = "1"
+serde = { version = "1", features = ["derive"] }
 regex = "1.11.1"
 anyhow = "1.0.98"
 markdown = { version = "1.0.0", optional = true, features = ["serde"] }
@@ -31,6 +31,9 @@ tree-sitter-rust = { version = "0.24.0", optional = true }
 html-escape = { version = "0.2.13", optional = true }
 tree-sitter-html = { version = "0.23.2", optional = true }
 katex = { version = "0.4.6", optional = true }
+chrono = { version = "0.4.41", features = ["serde"] }
+serde_yaml = "0.9.34"
+toml = "0.9.2"
 
 [features]
 csr = ["leptos/csr"]
@@ -52,12 +55,6 @@ ssr = [
   "dep:tree-sitter-html",
   "dep:katex",
 ]
-markdown = ["dep:markdown"]
-tree-sitter-highlight = ["dep:tree-sitter-highlight"]
-tree-sitter-rust = ["dep:tree-sitter-rust"]
-html-escape = ["dep:html-escape"]
-tree-sitter-html = ["dep:tree-sitter-html"]
-katex = ["dep:katex"]
 
 [profile.release]
 codegen-units = 1

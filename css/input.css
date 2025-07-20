@@ -332,30 +332,37 @@ nav {
     mx-auto my-auto;
 }
 
-#post-body {
+#post-body,
+#post-metadata {
   @apply mt-6 mb-auto;
 }
 
-#post-body > * {
+#post-metadata {
+  @apply container;
+}
+
+#post-body > *,
+#post-metadata > * {
   @apply my-4;
 }
 
-#post-body hr {
+#post-body hr,
+#post-metadata hr {
   @apply border-slate-600 dark:border-slate-400 border-t-4 w-40;
   transition: border-color 1s;
 }
 
 #post-body h1 {
-  @apply text-4xl font-extrabold my-12;
+  @apply text-3xl font-extrabold my-12;
 }
 #post-body h2 {
-  @apply text-3xl font-extrabold my-8;
+  @apply text-2xl font-extrabold my-8;
 }
 #post-body h3 {
-  @apply text-2xl font-extrabold my-6;
+  @apply text-xl font-extrabold my-6;
 }
 #post-body h4 {
-  @apply text-xl font-extrabold my-6;
+  @apply text-lg font-extrabold my-6;
 }
 
 #post-body p {
@@ -363,7 +370,7 @@ nav {
 }
 
 pre {
-  @apply px-4 py-4 bg-slate-200 dark:bg-slate-900 rounded;
+  @apply px-4 py-4 bg-slate-100 dark:bg-slate-900 rounded;
 }
 
 code {
@@ -418,4 +425,19 @@ blockquote:before {
 
 #post-body img {
   @apply rounded mb-2;
+}
+
+.footnote-def {
+  @apply text-slate-500 dark:text-slate-400;
+}
+.footnote-def > p {
+  display: inline;
+}
+
+.footnote-ref {
+  @apply text-slate-500 dark:text-slate-400 text-sm align-top;
+}
+
+a {
+  @apply hover:-translate-y-0.5 underline hover:decoration-4 transition-all;
 }

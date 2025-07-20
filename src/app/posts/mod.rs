@@ -1,6 +1,8 @@
 use crate::app::Link;
 use leptos::prelude::*;
-use leptos_router::hooks::use_params_map;
+use leptos_icons::Icon;
+use leptos_router::hooks::{use_location, use_params_map};
+use leptos_use::use_window;
 use std::str::FromStr as _;
 
 mod id;
@@ -70,7 +72,7 @@ pub fn PostContent() -> impl IntoView {
                     post.read()
                         .as_ref()
                         .cloned()
-                        .map(|res| { res.map(|p| view! { <PostBody body=p /> }) })
+                        .map(|res| { res.map(|p| view! { <PostBody post=p /> }) })
                 }}
             </Suspense>
         </ErrorBoundary>
@@ -78,6 +80,15 @@ pub fn PostContent() -> impl IntoView {
 }
 
 #[component]
-fn PostBody(body: String) -> impl IntoView {
-    view! { <div id="post-body" inner_html=body /> }
+fn PostBody(post: Post) -> impl IntoView {
+    view! {
+        <div id="post-metadata">
+            <h1 id="post-title" class="text-4xl font-extrabold">
+                {post.metadata.title}
+            </h1>
+            <p id="post-date">{post.metadata.date.to_string()}</p>
+            <hr />
+        </div>
+        <div id="post-body" inner_html=post.html />
+    }
 }
