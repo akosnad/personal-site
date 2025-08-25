@@ -10,6 +10,8 @@ let
     lib.match "^([0-9.]+):([0-9]+)$"
       cargoToml.package.metadata.leptos.site-addr;
   listenPort = lib.elemAt listenSocket 1;
+
+  gitRev = self.shortRev or "dirty";
 in
 {
   options = {
@@ -60,6 +62,7 @@ in
             description = "Docker image of the package";
             default = (pkgs.dockerTools.buildImage {
               inherit name;
+              tag = gitRev;
               config = {
                 Cmd = [ (lib.getExe self'.packages.${name}) ];
               };
@@ -186,7 +189,7 @@ in
           in
           {
             site.composeProject.services.backend = {
-              image = "${name}:${config.site.dockerImage.passthru.imageTag}";
+              image = "${name}:${gitRev}";
               ports = [ "${toString listenPort}:${toString listenPort}" ];
             };
 
