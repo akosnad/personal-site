@@ -48,6 +48,7 @@ in
                 (lib.hasInfix "/css/" path) ||
                 (lib.hasInfix "/locales/" path) ||
                 (lib.hasInfix "/posts/" path) ||
+                (lib.hasInfix "build\.rs" path) ||
                 # Default filter from crane (allow .rs files)
                 (config.site.craneLib.filterCargoSources path type)
               ;
@@ -93,6 +94,30 @@ in
           let
             inherit (config.site) craneLib src;
 
+            recursiveWebFont = pkgs.stdenvNoCC.mkDerivation {
+              name = "recursive-woff2";
+              src = pkgs.recursive;
+              buildInputs = with pkgs; [ woff2 parallel ];
+              buildPhase = ''
+                find ./share/fonts/truetype -type f -name "*.ttf" | \
+                  parallel -j "$(nproc)" -- woff2_compress {}
+              '';
+              installPhase = ''
+                mkdir -p $out
+                find . -type f -name "*.woff2" -exec cp {} $out/. \;
+                # also add a stable output for the variable font
+                ln -s "$out/Recursive_VF_${pkgs.recursive.version}.woff2" "$out/Recursive_VF.woff2"
+              '';
+              setupHook = lib.getExe (pkgs.writeScriptBin "recursive-webfont-setup" /* sh */ ''
+                addFontEnvVars() {
+                  if [ -e "$1/Recursive_VF.woff2" ]; then
+                    export RECURSIVE_FONT_DIR="$1"
+                  fi
+                }
+                addEnvHooks "$hostOffset" addFontEnvVars
+              '');
+            };
+
             package = craneLib.mkCargoDerivation {
               inherit src;
               pname = name;
@@ -108,6 +133,7 @@ in
               nativeBuildInputs = (with pkgs; [
                 cargo-leptos
                 wasm-bindgen-cli_0_2_100
+                recursiveWebFont
 
                 pkg-config
                 openssl
@@ -168,6 +194,7 @@ in
             packages.${name} = package;
             packages."docker-${name}" = config.site.dockerImage;
             packages.composeProject = config.site.composeProjectFile;
+            packages.recursiveWebFont = recursiveWebFont;
 
             # Rust dev environment
             devShells.${name} = pkgs.mkShell {
@@ -179,6 +206,10 @@ in
                 cargo-watch
                 clippy
                 libiconv
+                recursiveWebFont
+
+                just
+                git-lfs
               ]);
             };
 

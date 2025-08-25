@@ -77,8 +77,9 @@ struct PostCache {
 }
 
 #[cfg(feature = "ssr")]
+#[cfg_attr(debug_assertions, allow(dead_code))]
 struct CachedPost {
-    content: String,
+    content: Post,
     last_update: std::time::Instant,
 }
 
@@ -101,6 +102,8 @@ pub async fn load_post_content(post_id: PostId) -> Result<Post, ServerFnError<Po
         },
         compile: markdown::CompileOptions {
             allow_any_img_src: true,
+            // emitted html is controlled by us here
+            // so this option can be considered somewhat more safe (:D)
             allow_dangerous_html: true,
             allow_dangerous_protocol: true,
             ..Default::default()
@@ -163,14 +166,15 @@ pub async fn load_post_content(post_id: PostId) -> Result<Post, ServerFnError<Po
                 })?;
 
             post_cache.ids.insert(post_id.number, post_id.clone());
+            let post = Post { html, metadata };
             post_cache.entries.insert(
                 post_id.number,
                 CachedPost {
-                    content: html.clone(),
+                    content: post.clone(),
                     last_update: Instant::now(),
                 },
             );
-            Ok(Post { html, metadata })
+            Ok(post)
         }
         Err(e) => match e.kind() {
             ErrorKind::NotFound => Err(PostLoadError::NotFound.into()),
@@ -179,13 +183,6 @@ pub async fn load_post_content(post_id: PostId) -> Result<Post, ServerFnError<Po
             )),
         },
     }
-}
-
-#[cfg(feature = "ssr")]
-#[derive(Debug, Clone)]
-struct PreprocessedPost {
-    root: markdown::mdast::Node,
-    metadata: Option<PostMetadata>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -201,10 +198,18 @@ pub struct Post {
 }
 
 #[cfg(feature = "ssr")]
+#[derive(Clone)]
+struct Footnote {
+    definition_number: usize,
+    reference_count: usize,
+    defined: bool,
+}
+
+#[cfg(feature = "ssr")]
 fn preprocess(
     mut content: markdown::mdast::Node,
     metadata: &mut Option<PostMetadata>,
-    footnotes: &mut std::collections::HashMap<String, (usize, bool)>,
+    footnotes: &mut std::collections::HashMap<String, Footnote>,
     md_options: &markdown::Options,
 ) -> Result<Option<markdown::mdast::Node>, PostLoadError> {
     use markdown::mdast::{
@@ -263,31 +268,62 @@ fn preprocess(
             identifier,
             label,
         }) => {
-            let num = if let Some((prev_num, _)) = footnotes.get(&identifier) {
-                *prev_num
+            let Footnote {
+                definition_number,
+                reference_count,
+                defined,
+            } = if let Some(footnote) = footnotes.get_mut(&identifier) {
+                footnote.reference_count += 1;
+                footnote.clone()
             } else {
-                let new_num = footnotes.len() + 1;
-                footnotes.insert(identifier, (new_num, false));
-                new_num
+                let new_footnote = Footnote {
+                    definition_number: footnotes.len() + 1,
+                    reference_count: 1,
+                    defined: false,
+                };
+                footnotes.insert(identifier, new_footnote.clone());
+                new_footnote
             };
             Some(Node::Html(Html {
-                value: format!("<a class=\"footnote-ref\" href=\"#footnote-{num}\">{num}</a>"),
+                value: format!(
+                    "<a class=\"footnote-ref\" href=\"#footnote-{definition_number}\" id=\"footnote-{definition_number}-ref-{reference_count}\" rel=\"external\">{definition_number}</a>"
+                ),
                 position,
             }))
         }
-        Node::FootnoteDefinition(def) => match footnotes.get(&def.identifier) {
-            Some((num, false)) => {
-                let num = num.clone();
-                footnotes.insert(def.identifier.clone(), (num, true));
+        Node::FootnoteDefinition(def) => match footnotes.get_mut(&def.identifier) {
+            Some(Footnote {
+                definition_number,
+                reference_count,
+                defined,
+            }) if *defined == false => {
+                *defined = true;
                 let html = render_footnote_definition(&def, md_options)?;
+                let ref_links_html = if *reference_count == 1 {
+                    format!(
+                        "<a class=\"footnote-ref-backlink\" href=\"#footnote-{definition_number}-ref-1\" rel=\"external\">↩</a>"
+                    )
+                } else {
+                    let mut s = String::new();
+                    for i in 1..=*reference_count {
+                        let next = format!(
+                            "<a class=\"footnote-ref-backlink\" href=\"#footnote-{definition_number}-ref-{i}\" rel=\"external\">↩<sup>{i}</sup></a>"
+                        );
+                        s.push_str(next.as_str());
+                    }
+                    s
+                };
                 Some(Node::Html(Html {
                     value: format!(
-                        "<div class=\"footnote-def\" id=\"footnote-{num}\"><p>[{num}]: </p>{html}</div>"
+                        "<div class=\"footnote-def\" id=\"footnote-{definition_number}\"><p>[{definition_number}]: </p>{html}<span>{ref_links_html}</span></div>"
                     ),
                     position: def.position,
                 }))
             }
-            Some((_, true)) => {
+            Some(Footnote { defined: false, .. }) => {
+                unreachable!("defined == false is handled by the match arm above this")
+            }
+            Some(Footnote { defined: true, .. }) => {
                 return Err(PostLoadError::MultipleFootnoteDefinitions(format!(
                     "{}",
                     def.identifier
@@ -414,7 +450,12 @@ fn syntax_highlight(src: &str, lang: &str) -> Result<String, PostLoadError> {
     for event in highlights {
         match event.map_err(|e| PostLoadError::SyntaxHighlightFailed(format!("{e:?}")))? {
             HighlightEvent::Source { start, end } => {
-                highlighted_src.push_str(&src[start..end]);
+                // we have to escape code otherwise
+                // it leaves the door open for arbitrary javascript execution
+                // or other nasty stuff, if the source is not trusted!
+                //
+                // even though the source is trusted (in theory), this is still good practice.
+                highlighted_src.push_str(&html_escape::encode_text(&src[start..end]));
             }
             HighlightEvent::HighlightStart(s) => {
                 highlighted_src.push_str(&format!(
@@ -427,6 +468,7 @@ fn syntax_highlight(src: &str, lang: &str) -> Result<String, PostLoadError> {
             }
         }
     }
+
     Ok(format!(
         "<pre><code class=\"language-{lang}\">{highlighted_src}</code></pre>"
     ))

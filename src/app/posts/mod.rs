@@ -1,8 +1,5 @@
-use crate::app::Link;
 use leptos::prelude::*;
-use leptos_icons::Icon;
-use leptos_router::hooks::{use_location, use_params_map};
-use leptos_use::use_window;
+use leptos_router::hooks::use_params_map;
 use std::str::FromStr as _;
 
 mod id;
@@ -13,13 +10,15 @@ use load::*;
 
 #[component]
 pub fn PostsList() -> impl IntoView {
-    view! {
-        <Link href="/posts/1-hello">"post 1"</Link>
-        <Link href="/posts/4">"post 4"</Link>
-        <Link href="/posts/6">"post 6"</Link>
-        <Link href="/posts/7">"post 7"</Link>
-        <Link href="/posts/42-haha">"post 42"</Link>
-    }
+    view! { <p>"No posts yet!"</p> }
+    // view! {
+    //     // TODO: load list of posts from assets directory
+    //     <Link href="/posts/1-hello">"post 1"</Link>
+    //     <Link href="/posts/4">"post 4"</Link>
+    //     <Link href="/posts/6">"post 6"</Link>
+    //     <Link href="/posts/7">"post 7"</Link>
+    //     <Link href="/posts/42-haha">"post 42"</Link>
+    // }
 }
 
 #[component]

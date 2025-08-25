@@ -6,7 +6,7 @@ pub struct PostId {
 
 impl std::fmt::Display for PostId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.slug == "" {
+        if self.slug.is_empty() {
             write!(f, "{}", self.number)
         } else {
             write!(f, "{}-{}", self.number, self.slug)

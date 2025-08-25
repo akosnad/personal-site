@@ -32,16 +32,7 @@
       };
 
       packages.default = self'.packages.personal-site;
-      devShells.default = pkgs.mkShell {
-        inputsFrom = [
-          config.treefmt.build.devShell
-          self'.devShells.personal-site
-        ];
-        packages = with pkgs; [
-          just
-          git-lfs
-        ];
-      };
+      devShells.default = self'.devShells.personal-site;
     };
   };
 }

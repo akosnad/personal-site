@@ -49,7 +49,7 @@ In practice, this probability is more like $0.8$.[^prob]
 
 ---
 
-[^prob]: this is a footnote!
+[^prob]: this is a footnote! and a reference to another footnote in this footnote:[^ftc]
 
 # Next chapter
 
@@ -77,7 +77,10 @@ match x {
 
 ```html
 <h1>title</h1>
-<p>this should not be escaped!</p>
+<p>html should be escaped!</p>
+<span onload="javascript:alert('xss from a code block???')">
+  <p>hope not :P</p>
+</span>
 ```
 
 $$
@@ -89,3 +92,5 @@ $$
 ### References
 
 [^sf]: blablablablalbalbalalbalbla: [https://asdasdasd.test.arpa/prob](https://asdasdasd.test.arpa/prob)
+
+[^ftc]: hahahaaaa, footnote-ception!

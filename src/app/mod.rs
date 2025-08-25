@@ -180,7 +180,7 @@ fn Backdrop() -> impl IntoView {
                 <div class="halftone">
                     <div id="background">
                         <div id="bg-breathe" />
-                        <img src="/assets/bg.jpg" class="easeload" />
+                        <img src="/assets/bg.jpg" class="easeload" alt="page background image" />
                     </div>
                 </div>
             </Show>
