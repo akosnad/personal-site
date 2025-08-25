@@ -190,6 +190,11 @@ pub struct PostMetadata {
     pub title: String,
     pub description: String,
     pub date: chrono::NaiveDate,
+    #[serde(default = "default_author")]
+    pub author: String,
+}
+fn default_author() -> String {
+    "akosnad".to_string()
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -214,8 +219,8 @@ fn preprocess(
     md_options: &markdown::Options,
 ) -> Result<Option<markdown::mdast::Node>, PostLoadError> {
     use markdown::mdast::{
-        Code, Delete, FootnoteDefinition, FootnoteReference, Html, InlineMath, Math, Node, Text,
-        Toml, Yaml,
+        Code, Delete, FootnoteDefinition, FootnoteReference, Heading, Html, InlineMath, Link, Math,
+        Node, Text, Toml, Yaml,
     };
 
     if let Some(children) = content.children_mut() {
@@ -230,6 +235,14 @@ fn preprocess(
     }
 
     Ok(match content {
+        Node::Heading(Heading {
+            children,
+            position,
+            depth,
+        }) => Some(Node::Html(Html {
+            value: render_heading(&children, depth, md_options)?,
+            position,
+        })),
         Node::Code(Code {
             value,
             position,
@@ -287,7 +300,7 @@ fn preprocess(
             };
             Some(Node::Html(Html {
                 value: format!(
-                    "<a class=\"footnote-ref\" href=\"#footnote-{definition_number}\" id=\"footnote-{definition_number}-ref-{reference_count}\" rel=\"external\">{definition_number}</a>"
+                    "<sup><a class=\"footnote-ref\" href=\"#footnote-{definition_number}\" id=\"footnote-{definition_number}-ref-{reference_count}\" rel=\"external\">{definition_number}</a></sup>"
                 ),
                 position,
             }))
@@ -336,6 +349,35 @@ fn preprocess(
         },
         c => Some(c),
     })
+}
+
+#[cfg(feature = "ssr")]
+fn render_heading(
+    children: &Vec<markdown::mdast::Node>,
+    depth: u8,
+    md_options: &markdown::Options,
+) -> Result<String, PostLoadError> {
+    use slugify::slugify;
+
+    let md =
+        mdast_util_to_markdown::to_markdown(&markdown::mdast::Node::Root(markdown::mdast::Root {
+            children: children.clone(),
+            position: None,
+        }))
+        .map_err(|e| {
+            eprintln!("render_heading to_markdown() failed: {e:?}");
+            PostLoadError::MarkdownParseFailed(e.reason)
+        })?;
+
+    let slug = slugify!(md.as_str());
+
+    let inner_html = markdown::to_html_with_options(&md, md_options).map_err(|e| {
+        eprintln!("render_heading to_html_with_options() failed: {e:?}");
+        PostLoadError::MarkdownParseFailed(e.reason)
+    })?;
+    Ok(format!(
+        "<div class=\"post-heading-container\"><a class=\"heading-anchor\" href=\"#{slug}\" rel=\"external\">&nbsp;&nbsp;</a><h{depth} id=\"{slug}\" class=\"post-heading\">{inner_html}</h{depth}></div>"
+    ))
 }
 
 #[cfg(feature = "ssr")]

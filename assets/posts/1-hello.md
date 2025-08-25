@@ -18,6 +18,8 @@ this _is_ a **post** generated from `markdown`!
 
 Lorem ipsum dolor sit amet[aasd][a], consectetur adipiscing elit. Praesent sed purus ornare, gravida magna ac, imperdiet eros. Ut cursus molestie malesuada. Aliquam eu molestie justo, eget ornare metus. Quisque id dignissim magna, sit amet lacinia sem. Suspendisse bibendum vestibulum nibh, a pellentesque est tristique et. Suspendisse ut dictum felis, eu maximus enim. In vel justo id magna sagittis convallis sit amet quis massa.
 
+this is a [link to the next chapter heading](#next-chapter).
+
 Praesent a vestibulum leo. Nulla eu est hendrerit, laoreet nisl vitae, iaculis nulla. Morbi dictum sit amet massa nec bibendum. Duis porttitor metus tellus. Curabitur fringilla quam lacus. Donec ante sem, eleifend vel elit non, blandit hendrerit arcu. Nunc ac turpis aliquet, aliquam nisi in, ultrices risus. Proin erat erat, feugiat at orci quis, lobortis ornare est. Mauris convallis velit a nisl facilisis lobortis. Proin malesuada a velit ac efficitur. Donec eu rutrum ante. Donec commodo augue eget nunc pulvinar accumsan. Cras fringilla dui in finibus blandit. Vivamus facilisis leo nisi, at tincidunt lorem tincidunt sed.
 
 In turpis sapien, facilisis at molestie sed[^gen], faucibus nec ante. Nullam porta sodales pretium. In dictum dolor turpis, sit amet egestas neque pellentesque id. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Aliquam sed nibh vel libero suscipit vulputate. Duis lacinia erat lectus, nec tincidunt ante sodales ac. Quisque eleifend iaculis fringilla. Mauris nec dolor nec orci tristique consequat. Aliquam aliquam sem risus, nec faucibus libero bibendum quis. Nunc in sem lacinia, tincidunt neque vitae, tempor leo. Nulla molestie augue tincidunt imperdiet vulputate. Sed congue lectus in sem fermentum venenatis.
@@ -96,6 +98,8 @@ match x {
 $$
   \int_0^{\infty}\dfrac{\sin x}{x} dx
 $$
+
+# Heading with `code` and $\lim_{t \to \infty}ma^{th}$
 
 ---
 

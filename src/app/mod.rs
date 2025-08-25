@@ -113,9 +113,9 @@ fn NavBar() -> impl IntoView {
     let backdrop2 = backdrop.clone();
     let anim_toggle_icon = move || {
         if backdrop2.animation_enabled() {
-            view! { <Icon icon=icondata::MdiFilmstrip /> }
+            view! { <Icon icon=icondata::LuImage /> }
         } else {
-            view! { <Icon icon=icondata::MdiFilmstripOff /> }
+            view! { <Icon icon=icondata::LuImageOff /> }
         }
     };
 

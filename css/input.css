@@ -313,6 +313,7 @@ body {
 }
 
 nav {
+  z-index: 10;
   animation-name: blurNav;
   animation-duration: 1ms;
   animation-direrction: normal;
@@ -449,14 +450,14 @@ blockquote:before {
 
 .footnote-ref {
   scroll-margin-top: 8rem;
-  @apply text-slate-500 dark:text-slate-400 text-sm align-top;
+  @apply text-slate-500 dark:text-slate-400;
 }
 
 .footnote-ref-backlink {
   @apply mx-1;
 }
 
-*:has(> .footnote-ref:target) {
+*:has(> sup > .footnote-ref:target) {
   animation: flash-light 5s ease;
   /* @apply bg-slate-300 dark:bg-slate-800; */
 }
@@ -465,7 +466,7 @@ blockquote:before {
   .footnote-def:target {
     animation: flash-dark 5s ease;
   }
-  *:has(> .footnote-ref:target) {
+  *:has(> sup > .footnote-ref:target) {
     animation: flash-dark 5s ease;
   }
 }
@@ -501,4 +502,46 @@ blockquote:before {
 
 a {
   @apply hover:-translate-y-0.5 underline hover:decoration-4 transition-all;
+}
+
+#post-author-avatar > img {
+  height: 1lh;
+  @apply rounded-full inline mr-2;
+}
+
+.heading-anchor {
+  width: 1rem;
+  height: 1rem;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg class='text-slate-300' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' stroke='white' fill='none'><path d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'></path><path d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'></path></svg>");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  mask: url("data:image/svg+xml;utf8,<svg class='text-slate-300' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' stroke='white' fill='none'><path d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'></path><path d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'></path></svg>");
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  transition: opacity 150ms;
+  opacity: 0;
+  @apply absolute -left-12 top-1/4 bg-slate-400 dark:bg-slate-400 px-8;
+}
+.post-heading-container {
+  @apply relative;
+}
+.post-heading-container:hover .heading-anchor,
+.post-heading-container:focus .heading-anchor,
+.heading-anchor:hover,
+.heading-anchor:focus {
+  opacity: 1;
+}
+.post-heading {
+  scroll-margin-top: 8rem;
+}
+.post-heading-container:has(.post-heading:target) {
+  animation: flash-light 5s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .post-heading-container:has(.post-heading:target) {
+    animation: flash-dark 5s ease;
+  }
 }

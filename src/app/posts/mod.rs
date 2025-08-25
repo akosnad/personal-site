@@ -85,16 +85,30 @@ pub fn PostContent() -> impl IntoView {
 
 #[component]
 fn PostBody(post: Post) -> impl IntoView {
+    let author = post.metadata.author.clone();
     view! {
         <Meta name="description" content=post.metadata.description />
         <Title text=post.metadata.title.clone() />
         <div id="post-metadata">
-            <h1 id="post-title" class="text-4xl font-extrabold">
+            <h1 id="post-title" class="text-4xl font-extrabold" aria-label="Post title">
                 {post.metadata.title}
             </h1>
-            <p id="post-date">{post.metadata.date.to_string()}</p>
+            <div class="flex flex-row flex-wrap gap-4">
+                <p id="post-author" aria-label="Post author">
+                    <span id="post-author-avatar" aria-hidden="true">
+                        <img
+                            src=move || format!("/assets/{author}.webp")
+                            alt="post author avatar"
+                        />
+                    </span>
+                    {post.metadata.author}
+                </p>
+                <time id="post-date" aria-label="Post date" datetime=post.metadata.date.to_string()>
+                    {post.metadata.date.to_string()}
+                </time>
+            </div>
             <hr />
         </div>
-        <div id="post-body" inner_html=post.html />
+        <article id="post-body" inner_html=post.html />
     }
 }
