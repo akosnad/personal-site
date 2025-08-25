@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_meta::*;
 use leptos_router::hooks::use_params_map;
 use std::str::FromStr as _;
 
@@ -10,7 +11,11 @@ use load::*;
 
 #[component]
 pub fn PostsList() -> impl IntoView {
-    view! { <p>"No posts yet!"</p> }
+    view! {
+        <Title text="posts" />
+        <Meta name="description" content="See the blog posts by akosnad" />
+        <p>"No posts yet!"</p>
+    }
     // view! {
     //     // TODO: load list of posts from assets directory
     //     <Link href="/posts/1-hello">"post 1"</Link>
@@ -81,6 +86,8 @@ pub fn PostContent() -> impl IntoView {
 #[component]
 fn PostBody(post: Post) -> impl IntoView {
     view! {
+        <Meta name="description" content=post.metadata.description />
+        <Title text=post.metadata.title.clone() />
         <div id="post-metadata">
             <h1 id="post-title" class="text-4xl font-extrabold">
                 {post.metadata.title}

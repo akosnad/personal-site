@@ -74,7 +74,16 @@ pub fn App() -> impl IntoView {
         // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet id="leptos" href="/pkg/personal-site.css" />
 
-        <Title text="akosnad.dev" />
+        <Title
+            formatter=|text: String| {
+                if text.is_empty() {
+                    "akosnad.dev".to_string()
+                } else {
+                    format!("{text} | akosnad.dev")
+                }
+            }
+            text=""
+        />
         <Backdrop />
 
         <Router>
@@ -180,7 +189,7 @@ fn Backdrop() -> impl IntoView {
                 <div class="halftone">
                     <div id="background">
                         <div id="bg-breathe" />
-                        <img src="/assets/bg.jpg" class="easeload" alt="page background image" />
+                        <img src="/assets/bg.webp" class="easeload" alt="page background image" />
                     </div>
                 </div>
             </Show>

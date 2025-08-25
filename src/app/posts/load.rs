@@ -188,6 +188,7 @@ pub async fn load_post_content(post_id: PostId) -> Result<Post, ServerFnError<Po
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PostMetadata {
     pub title: String,
+    pub description: String,
     pub date: chrono::NaiveDate,
 }
 

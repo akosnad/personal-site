@@ -1,5 +1,6 @@
 ---
-title: Hello world! This a long title. This a long title. This a long title. This a long title. This a long title. This a long title. This a long title. This a long title.
+title: Hello world!
+description: this is the description of hello post
 date: 2025-07-19
 ---
 
@@ -27,7 +28,7 @@ In turpis sapien, facilisis at molestie sed[^gen], faucibus nec ante. Nullam por
 
 In viverra sem et ipsum feugiat maximus. Donec aliquam rhoncus molestie. Fusce faucibus, sapien sed fringilla scelerisque, nisi tellus euismod nulla, vel cursus enim leo vel mauris. Integer ante turpis, tristique vel tristique ut, varius ac urna. Sed tincidunt posuere ante sit amet tincidunt. Aenean mollis porta porta. Nulla tincidunt magna at ante fringilla faucibus.
 
-![an image](/assets/img.jpg)
+![an image](/assets/img.webp)
 a nice sunflower[^sf]
 
 Cras id odio dui. Morbi placerat ante mauris, non hendrerit ligula sollicitudin et. Quisque tellus metus, ultricies a aliquet non, venenatis sit amet neque. Morbi imperdiet urna a nibh condimentum consequat. Suspendisse magna leo, aliquet a fringilla eget, porttitor sed elit. Donec ultricies auctor enim in facilisis. Aenean id risus felis.
@@ -43,6 +44,15 @@ Praesent ultrices mauris eget egestas sodales. Vivamus convallis ex vel massa la
 Aliquam lobortis nec magna et tempus. Praesent vitae ligula ac erat commodo sagittis sed non lacus. Praesent egestas consequat mi non hendrerit. Praesent luctus elit vitae massa suscipit aliquet. In volutpat tellus ut tincidunt volutpat. Aliquam fermentum magna sed tortor dapibus viverra. Integer magna velit, rutrum at convallis vel, auctor eget ex. Nullam aliquet mi ut euismod finibus. Donec eget facilisis quam. Mauris consectetur laoreet imperdiet. Etiam quis enim risus. Nullam eu justo eget lectus porttitor varius hendrerit sit amet eros. Vestibulum at leo nec lectus vestibulum placerat vel id purus. Quisque sagittis sed magna quis hendrerit. Donec imperdiet at dolor non ornare.
 
 This is a sentence with some inline $\frac{m_a^th}{42}$.
+
+And here is a math block:
+
+$$
+
+  \sum_{n = 0}^{\infty} \frac{1}{n}
+
+
+$$
 
 Let's assume the probability of detecting an intruder is $P_d = 0.5$. This is a naive model that states: "it either detects the intrusion or not."
 In practice, this probability is more like $0.8$.[^prob]
@@ -84,7 +94,7 @@ match x {
 ```
 
 $$
-  \int_0^{\infty}\dfrac{\sin x}{x},dt
+  \int_0^{\infty}\dfrac{\sin x}{x} dx
 $$
 
 ---
